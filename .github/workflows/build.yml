@@ -70,13 +70,17 @@ jobs:
 
     steps:
       - name: Checkout recipe
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Unpack build recipe
         run: |
           python3 - <<'PY'
           import glob, os, sys, zipfile
-          z = 'recipe.zip' if os.path.isfile('recipe.zip') else (sorted(glob.glob('*.zip')) or [None])[0]
+          zips = sorted(glob.glob('*.zip'))
+          z = 'recipe.zip' if 'recipe.zip' in zips else (zips[0] if zips else None)
+          if len(zips) > 1:
+              print('::warning::multiple zip archives found:', zips, '- using', z,
+                    '- delete stale copies so the newest recipe is used')
           if z:
               with zipfile.ZipFile(z) as f:
                   names = f.namelist()
@@ -135,7 +139,7 @@ jobs:
         run: python3 tools/check_opp.py
 
       - name: Cache downloaded sources
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: build/immortalwrt/dl
           key: immortalwrt-dl-${{ inputs.branch }}-v2
@@ -154,7 +158,7 @@ jobs:
           tail -n 60 build.log 2>/dev/null || true
 
       - name: Upload firmware (${{ matrix.variant }})
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: immortalwrt-e52c-lowfreq-${{ matrix.variant }}-${{ inputs.branch }}
           path: |
